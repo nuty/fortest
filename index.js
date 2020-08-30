@@ -56,11 +56,11 @@ exports.handler = async (event, context, callback) => {
             }, function (err, data) {
                 if (err) {
                     console.log('Error putting item into dynamodb failed: ' + err);
-                    context.done('error');
+                    context.succeed('error');
                 }
                 else {
                     console.log('great success: ' + JSON.stringify(data, null, '  '));
-                    context.done('Done');
+                    context.succeed('Done');
                 }
             });
         }else{
@@ -79,8 +79,5 @@ exports.handler = async (event, context, callback) => {
                 }
             });
         }
-
     });
-
-
 };
