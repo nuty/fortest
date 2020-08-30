@@ -32,6 +32,10 @@ exports.handler = async (event, context, callback) => {
     //     return;
     // }
 
+    const params = {
+        Bucket: srcBucket,
+        Key: srcKey
+    };
 
     var jsonLines = [];
 
