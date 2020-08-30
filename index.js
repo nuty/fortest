@@ -3,7 +3,7 @@ const AWS = require('aws-sdk');
 const csv = require('csvtojson');
 const s3 = new AWS.S3();
 const { v4: uuidv4 } = require('uuid');
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
+const dynamodb = new AWS.DynamoDB();
 const sns = new AWS.SNS();
 
 exports.handler = async (event, context, callback) => {
