@@ -1,0 +1,1 @@
+aws s3 cp ./test/test.csv s3://mybucketrosso/test1.csv
