@@ -11,14 +11,14 @@ exports.handler = async (event, context, callback) => {
     const srcBucket = event.Records[0].s3.bucket.name;
     const srcKey = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
     const typeMatch = srcKey.match(/\.([^.]*)$/);
-    // const fileType = typeMatch[1].toLowerCase();
-    // if (!typeMatch) {
-    //     console.log("Could not determine the csv type.");
-    //     return;
-    // }
-    // if (fileType != "csv") {
-    //     console.log(`Only supported  csv type`);
-    // }
+    const fileType = typeMatch[1].toLowerCase();
+    if (!typeMatch) {
+        console.log("Could not determine the csv type.");
+        return;
+    }
+    if (fileType != "csv") {
+        console.log(`Only supported  csv type`);
+    }
     const params = {
         Bucket: srcBucket,
         Key: srcKey
@@ -81,4 +81,5 @@ exports.handler = async (event, context, callback) => {
     });
 
     console.log(JSON.stringify(jsonLines))
+    return context.logStreamName
 };
