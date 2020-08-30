@@ -19,7 +19,6 @@ exports.handler = async (event, context, callback) => {
         console.log(`Only supported  csv type`);
         return;
     }
-
     const params = {
         Bucket: srcBucket,
         Key: srcKey
@@ -56,16 +55,16 @@ exports.handler = async (event, context, callback) => {
                 }
             }, function (err, data) {
                 if (err) {
-                    console.log('Error putting item into dynamodb failed: ' + err);
+                    console.info('Error putting item into dynamodb failed: ' + err);
                     context.succeed('error');
                     return err;
-
                 }
                 else {
-                    console.log('great success: ' + JSON.stringify(data, null, '  '));
+                    console.info('great success: ' + JSON.stringify(data, null, '  '));
                     context.succeed('Done');
                 }
             });
+            console.log(JSON.stringify(item))
         }else{
             var errMsg = "".concat("format error in", JSON.stringify(item));
             sns.publish({
@@ -83,8 +82,5 @@ exports.handler = async (event, context, callback) => {
             });
         }
     });
-    return {
-        'statusCode': 200,
-        'body': jsonLines
-    }
+    console.log(JSON.stringify(jsonLines))
 };
