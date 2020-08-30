@@ -20,34 +20,44 @@ exports.handler = async (event, context, callback) => {
         console.log(`Only supported  csv type`);
         return;
     }
-    try {
-        const params = {
-            Bucket: srcBucket,
-            Key: srcKey
-        };
-        var csvFile = s3.getObject(params);
-    } catch (error) {
-        console.log(error);
-        return;
-    } 
+
+    // try {
+    //     const params = {
+    //         Bucket: srcBucket,
+    //         Key: srcKey
+    //     };
+    //     var csvFile = s3.getObject(params);
+    // } catch (error) {
+    //     console.log(error);
+    //     return;
+    // }
+
+
     var jsonLines = [];
 
+    var csvFile = '';
+    s3.getObject(params, function (err, data) {
+        // Handle any error and exit
+        if (err)
+            return err;
+
+        // No error happened
+        // Convert Body from a Buffer to a String
+
+        var csvFile = data.Body.toString('utf-8'); // Use the encoding necessary
+    });
 
     try {
         csv({ output: "json" })
-            .fromString(csvFile.Body.toString('utf-8'))
+            .fromString(csvFile)
             .subscribe((csvLine) => {
                 console.log(csvLine);
                 jsonLines.push(JSON.parse(csvLine))
             })
     } catch (error) {
         console.log(error);
-        return;
     }
-    console.log("#############################");
-    console.log(jsonLines);
-    console.log(csvFile.Body);
-    console.log("#############################");
+
 
     jsonLines.forEach(function (item) {
         if (item.hasOwnProperty("latitude") && item.hasOwnProperty("longitude") && item.hasOwnProperty("address")){
