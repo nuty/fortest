@@ -11,7 +11,6 @@ exports.handler = async (event, context, callback) => {
     const srcKey = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
     const typeMatch = srcKey.match(/\.([^.]*)$/);
     const fileType = typeMatch[1].toLowerCase();
-    const table = "positions";
     if (!typeMatch) {
         console.log("Could not determine the csv type.");
         return;
@@ -20,17 +19,6 @@ exports.handler = async (event, context, callback) => {
         console.log(`Only supported  csv type`);
         return;
     }
-
-    // try {
-    //     const params = {
-    //         Bucket: srcBucket,
-    //         Key: srcKey
-    //     };
-    //     var csvFile = s3.getObject(params);
-    // } catch (error) {
-    //     console.log(error);
-    //     return;
-    // }
 
     const params = {
         Bucket: srcBucket,
@@ -41,32 +29,27 @@ exports.handler = async (event, context, callback) => {
 
     var csvFile = '';
     s3.getObject(params, function (err, data) {
-        // Handle any error and exit
         if (err)
             return err;
-
-        // No error happened
-        // Convert Body from a Buffer to a String
-
-        var csvFile = data.Body.toString('utf-8'); // Use the encoding necessary
+        var csvFile = data.Body.toString('utf-8');
+        try {
+            csv({ output: "json" })
+                .fromString(csvFile)
+                .subscribe((csvLine) => {
+                    console.log(csvLine);
+                    jsonLines.push(JSON.parse(csvLine))
+                })
+        } catch (error) {
+            return error;
+        }
     });
 
-    try {
-        csv({ output: "json" })
-            .fromString(csvFile)
-            .subscribe((csvLine) => {
-                console.log(csvLine);
-                jsonLines.push(JSON.parse(csvLine))
-            })
-    } catch (error) {
-        console.log(error);
-    }
 
 
     jsonLines.forEach(function (item) {
         if (item.hasOwnProperty("latitude") && item.hasOwnProperty("longitude") && item.hasOwnProperty("address")){
             dynamodb.putItem({
-                "TableName": table,
+                "TableName": "positions",
                 "Item": {
                     "id": uuidv4(),
                     "latitude": item.latitude.replace(/\s+/g, ""),
@@ -77,6 +60,8 @@ exports.handler = async (event, context, callback) => {
                 if (err) {
                     console.log('Error putting item into dynamodb failed: ' + err);
                     context.succeed('error');
+                    return err;
+
                 }
                 else {
                     console.log('great success: ' + JSON.stringify(data, null, '  '));
