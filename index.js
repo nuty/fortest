@@ -31,9 +31,11 @@ exports.handler = async (event, context, callback) => {
         return;
     } 
     var jsonLines = [];
+
+
     try {
         csv({ output: "json" })
-            .fromString(csvFile.Body)
+            .fromString(csvFile.Body.toString('utf-8'))
             .subscribe((csvLine) => {
                 console.log(csvLine);
                 jsonLines.push(JSON.parse(csvLine))
@@ -42,6 +44,10 @@ exports.handler = async (event, context, callback) => {
         console.log(error);
         return;
     }
+    console.log("#############################");
+    console.log(jsonLines);
+    console.log(csvFile.Body);
+    console.log("#############################");
 
     jsonLines.forEach(function (item) {
         if (item.hasOwnProperty("latitude") && item.hasOwnProperty("longitude") && item.hasOwnProperty("address")){
