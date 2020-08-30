@@ -44,8 +44,6 @@ exports.handler = async (event, context, callback) => {
         }
     });
 
-
-
     jsonLines.forEach(function (item) {
         if (item.hasOwnProperty("latitude") && item.hasOwnProperty("longitude") && item.hasOwnProperty("address")){
             dynamodb.putItem({
@@ -85,4 +83,8 @@ exports.handler = async (event, context, callback) => {
             });
         }
     });
+    return {
+        'statusCode': 200,
+        'body': jsonLines
+    }
 };
