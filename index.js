@@ -26,7 +26,6 @@ exports.handler = async (event, context, callback) => {
 
     var jsonLines = [];
 
-    var csvFile = '';
     s3.getObject(params, function (err, data) {
         if (err)
             return err;
@@ -42,7 +41,6 @@ exports.handler = async (event, context, callback) => {
             return error;
         }
     });
-
     jsonLines.forEach(function (item) {
         if (item.hasOwnProperty("latitude") && item.hasOwnProperty("longitude") && item.hasOwnProperty("address")){
             dynamodb.putItem({
@@ -54,15 +52,16 @@ exports.handler = async (event, context, callback) => {
                     "address": item.address
                 }
             }, function (err, data) {
-                if (err) {
-                    console.info('Error putting item into dynamodb failed: ' + err);
-                    context.succeed('error');
-                    return err;
-                }
-                else {
-                    console.info('great success: ' + JSON.stringify(data, null, '  '));
-                    context.succeed('Done');
-                }
+                // if (err) {
+                //     console.info('Error putting item into dynamodb failed: ' + err);
+                //     context.succeed('error');
+                //     return err;
+                // }
+                // else {
+                //     console.info('great success: ' + JSON.stringify(data, null, '  '));
+                //     context.succeed('Done');
+                // }
+                console.log(err)
             });
             console.log(JSON.stringify(item))
         }else{
@@ -72,13 +71,15 @@ exports.handler = async (event, context, callback) => {
                 TopicArn: "arn:aws:sns:us-east-2:187917615240:errorsSNS",
                 Message: errMsg
             }, function (err, data) {
-                if (err) {
-                    console.error('error publishing to SNS');
-                    context.fail(err);
-                } else {
-                    console.info('message published to SNS');
-                    context.succeed(null, data);
-                }
+                // if (err) {
+                //     console.error('error publishing to SNS');
+                //     context.fail(err);
+                // } else {
+                //     console.info('message published to SNS');
+                //     context.succeed(null, data);
+                // }
+                console.log(err)
+
             });
         }
     });
