@@ -25,7 +25,7 @@ exports.handler = async (event, context, callback) => {
             Bucket: srcBucket,
             Key: srcKey
         };
-        var csvFile = await s3.getObject(params).promise();
+        var csvFile = s3.getObject(params);
     } catch (error) {
         console.log(error);
         return;
