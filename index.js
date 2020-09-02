@@ -7,23 +7,59 @@ const dynamodb = new AWS.DynamoDB();
 const sns = new AWS.SNS();
 
 
-exports.handler = async (event, context, callback) => {
-    const srcBucket = event.Records[0].s3.bucket.name;
-    const srcKey = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
-    const typeMatch = srcKey.match(/\.([^.]*)$/);
+// check csv file type is correct type.
+exports.checkCsvFileType = function(Key) {
+    const typeMatch = Key.match(/\.([^.]*)$/);
     const fileType = typeMatch[1].toLowerCase();
     if (!typeMatch) {
         console.log("Could not determine the csv type.");
-        return;
-    }
+    };
     if (fileType != "csv") {
-        console.log(`Only supported  csv type`);
-    }
+        console.log(`Only supported csv type`);
+    };
+    return typeMatch && fileType == "csv";
+};
+
+
+// check csv content is correct format.
+exports.checkCsvFormat = function(csvJsonItem) {
+    return csvJsonItem.hasOwnProperty("latitude") && csvJsonItem.hasOwnProperty("longitude") && csvJsonItem.hasOwnProperty("address");
+};
+
+
+
+// save object to dynamoDB
+function putItemToDB(item, context){
+    dynamodb.putItem({
+        "TableName": "Positions",
+        "Item": {
+            "id": uuidv4(),
+            "latitude": item.latitude.replace(/\s+/g, ""),
+            "longitude": item.longitude.replace(/\s+/g, ""),
+            "address": item.address
+        }
+    }, function (err, data) {
+        if (err) {
+            console.info('Error putting item into dynamodb failed: ' + err);
+            context.succeed('error');
+            return err;
+        }
+        else {
+            console.info('great success: ' + JSON.stringify(data, null, '  '));
+            context.succeed('Done');
+        }
+    })
+};
+
+
+// convert csv line to json object
+function csvToObj(event){
+    const srcBucket = event.Records[0].s3.bucket.name;
+    var jsonLines = [];
     const params = {
         Bucket: srcBucket,
         Key: srcKey
     };
-    var jsonLines = [];
     s3.getObject(params, function (err, data) {
         if (err)
             return err;
@@ -39,46 +75,45 @@ exports.handler = async (event, context, callback) => {
             return error;
         }
     });
+    return jsonLines
+};
 
-    jsonLines.forEach(function (item) {
-        if (item.hasOwnProperty("latitude") && item.hasOwnProperty("longitude") && item.hasOwnProperty("address")){
-            dynamodb.putItem({
-                "TableName": "positions",
-                "Item": {
-                    "id": uuidv4(),
-                    "latitude": item.latitude.replace(/\s+/g, ""),
-                    "longitude": item.longitude.replace(/\s+/g, ""),
-                    "address": item.address
-                }
-            }, function (err, data) {
-                if (err) {
-                    console.info('Error putting item into dynamodb failed: ' + err);
-                    context.succeed('error');
-                    return err;
-                }
-                else {
-                    console.info('great success: ' + JSON.stringify(data, null, '  '));
-                    context.succeed('Done');
-                }
-            });
-            console.log(JSON.stringify(item))
-        }else{
-            var errMsg = "".concat("format error in", JSON.stringify(item));
-            sns.publish({
-                Subject: "data format error!",
-                TopicArn: "arn:aws:sns:us-east-2:187917615240:errorsSNS",
-                Message: errMsg
-            }, function (err, data) {
-                if (err) {
-                    console.error('error publishing to SNS');
-                    context.fail(err);
-                } else {
-                    console.info('message published to SNS');
-                    context.succeed(null, data);
-                }
-            });
+
+// publish error messages to aws sns.
+function publishToSNS(errMsg, context){
+    sns.publish({
+        Subject: "Data format error!",
+        TopicArn: "arn:aws:sns:us-east-2:187917615240:errorsSNS",
+        Message: errMsg
+    }, function (err, data) {
+        if (err) {
+            console.error('error publishing to SNS');
+            context.fail(err);
+        } else {
+            console.info('message published to SNS');
+            context.succeed(null, data);
         }
     });
-    console.log(JSON.stringify(jsonLines))
-    return context.logStreamName
+}
+
+
+// main handler
+exports.handler = async (event, context, callback) => {
+    const srcKey = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
+    if (checkCsvFileType(srcKey)){
+        var objectsList = csvToObj(event)
+        objectsList.forEach(function (item) {
+            if (checkCsvFormat(item)) {
+                putItemToDB(item, context);
+            } else {
+                var errMsg = "".concat("format error in ", JSON.stringify(item));
+                publishToSNS(errMsg, context);
+            }
+        });
+    } else {
+        var errMsg = "".concat("csv type error in ", srcKey);
+        publishToSNS(errMsg, context)
+    }
+    console.log(JSON.stringify(objectsList))
+    return JSON.stringify(objectsList)
 };
