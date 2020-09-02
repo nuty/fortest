@@ -1,4 +1,5 @@
-完成功能：
+
+完成功能： 
 
 ​ 1，创建AWS账户，配置ARN，创建Bucket，创建dynamoDB table，开启 cloudwatch服务，配置SNS服务。
 
